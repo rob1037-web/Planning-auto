@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Plannings - Dashboard</title>
+    <style>
+        /* Reset et variables */
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #818CF8;
+            --background-color: #F3F4F6;
+            --card-color: #FFFFFF;
+            --text-color: #1F2937;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+        }
+
+                .month-navigation {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .month-navigation .btn {
+            padding: 0.5rem 1rem;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+
+
+
+
+        .task-item {
+        border: 1px solid #E5E7EB;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: var(--radius);
+    }
+
+    .btn-danger {
+        background-color: #DC2626;
+        color: white;
+        margin-top: 0.5rem;
+    }
+
+    .btn-danger:hover {
+        background-color: #B91C1C;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+    }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        /* Layout principal */
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background-color: var(--card-color);
+            padding: 1.5rem;
+            border-right: 1px solid #E5E7EB;
+            width: 280px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        /* Bouton menu burger */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1001;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        /* Zone principale */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            margin-left: 280px;
+            width: calc(100% - 280px);
+        }
+
+        /* Composants UI */
+        .card {
+            background-color: var(--card-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* Personnalisation de l'input week */
+        input[type="week"] {
+            appearance: none;
+            -webkit-appearance: none;
+            background-color: white;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #E5E7EB;
+            border-radius: var(--radius);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        input[type="week"]:hover {
+            border-color: var(--primary-color);
+        }
+
+        input[type="week"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        input[type="week"]::-webkit-calendar-picker-indicator {
+            background-color: transparent;
+            padding: 0.2rem;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        input[type="week"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Header actions */
+        .header-actions {
+            margin-bottom: 2rem;
+        }
+
+        .header-actions h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Grille du planning */
+        .calendar-container {
+            overflow-x: auto;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(150px, 1fr));
+            text-align: center;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+            font-weight: bold;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(150px, 1fr));
+            gap: 0.5rem;
+            min-width: 700px;
+        }
+
+        .calendar-cell {
+            background-color: var(--card-color);
+            border-radius: var(--radius);
+            padding: 1rem;
+            min-height: 100px;
+            box-shadow: var(--shadow);
+        }
+
+        .date {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+        }
+
+        .modal-content {
+            background-color: var(--card-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            margin: 2rem auto;
+            position: relative;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            border: 1px solid #E5E7EB;
+            font-size: 1rem;
+        }
+
+        /* Event styles */
+        .event-item {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        /* Current day highlight */
+        .current-day {
+            border: 2px solid var(--primary-color);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-actions h1 {
+                font-size: 1.25rem;
+            }
+
+            .calendar-container {
+                margin-top: 1rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem auto;
+                padding: 1.5rem;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            input[type="week"] {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .calendar-header, .calendar-grid {
+                min-width: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="card">
+                <h2>Menu</h2>
+                <nav>
+                    <ul style="list-style: none; margin-top: 1rem;">
+                        <li><button class="btn" style="width: 100%; margin-bottom: 0.5rem;" onclick="changeView('day')">Vue Journalière</button></li>
+                        <li><button class="btn" style="width: 100%; margin-bottom: 0.5rem;" onclick="changeView('week')">Vue Hebdomadaire</button></li>
+                        <li><button class="btn" style="width: 100%;" onclick="changeView('month')">Vue Mensuelle</button></li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="header-actions">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;"
+                <h1>Planning Mensuel</h1>
+                <div class="month-navigation">
+                    <button class="btn" onclick="previousMonth()">&lt;</button>
+                    <button class="btn" onclick="nextMonth()">&gt;</button>
+                </div>
+            </div>
+               
+               
+               
+                <h1>Planning Hebdomadaire</h1>
+                <div class="action-buttons">
+                    <button class="btn" onclick="openCreateEventModal()">+ Nouveau Créneau</button>
+                    <input type="week" onchange="changeWeek(this.value)">
+                </div>
+            </div>
+
+            <div class="calendar-container card">
+                <div class="calendar-header">
+                    <div>Lundi</div>
+                    <div>Mardi</div>
+                    <div>Mercredi</div>
+                    <div>Jeudi</div>
+                    <div>Vendredi</div>
+                    <div>Samedi</div>
+                    <div>Dimanche</div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+            </div>
+        </main>
+
+        <!-- Modal de création d'événement -->
+        <div class="modal" id="eventModal">
+            <div class="modal-content">
+                <h2 style="margin-bottom: 1.5rem;">Nouveau Créneau</h2>
+                <form id="eventForm" onsubmit="handleEventSubmit(event)">
+                    <div class="form-group">
+                        <label for="eventTitle">Titre</label>
+                        <input type="text" id="eventTitle" required class="form-control">
+                    </div>
+
+                    <div id="tasksList">
+                        <!-- Tasks will be added here -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addTask()">+ Ajouter une tâche</button>
+
+                    <div class="form-group">
+                        <label for="eventDate">Date</label>
+                        <input type="date" id="eventDate" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTime">Heure</label>
+                        <input type="time" id="eventTime" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDuration">Durée (minutes)</label>
+                        <input type="number" id="eventDuration" required min="15" step="15" value="60" class="form-control">
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                        <button type="button" class="btn" style="background-color: #9CA3AF;" onclick="closeModal()">Annuler</button>
+                        <button type="submit" class="btn">Créer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function previousMonth() {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                refreshCalendar();
+            }
+
+            function nextMonth() {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                refreshCalendar();
+            }
+
+
+
+            // Structure de données pour stocker les événements
+            let events = [];
+            let currentView = 'week';
+            let currentDate = new Date();
+
+            // Toggle sidebar
+            function toggleSidebar() {
+                document.querySelector('.sidebar').classList.toggle('active');
+            }
+
+            // Fonctions de gestion des modales
+            function openCreateEventModal() {
+                document.getElementById('eventModal').style.display = 'block';
+                // Définir la date du jour par défaut dans le formulaire
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('eventDate').value = today;
+            }
+
+            function closeModal() {
+                document.getElementById('eventModal').style.display = 'none';
+            }
+
+            // Gestion des événements
+            // Ajouter cette modification dans la fonction handleEventSubmit
+
+function handleEventSubmit(e) {
+    e.preventDefault();
+    const date = document.getElementById('eventDate').value;
+    
+    if (document.getElementsByClassName('task-item').length === 0) {
+        // Si aucune tâche n'est ajoutée, créer un événement simple
+        const newEvent = {
+            id: Date.now(),
+            title: document.getElementById('eventTitle').value,
+            date: document.getElementById('eventDate').value,
+            time: document.getElementById('eventTime').value,
+            duration: document.getElementById('eventDuration').value
+        };
+        events.push(newEvent);
+    } else {
+        // Sinon, collecter toutes les tâches
+        const tasks = Array.from(document.getElementsByClassName('task-item')).map(task => ({
+            title: task.querySelector('.task-title').value,
+            time: task.querySelector('.task-time').value,
+            duration: task.querySelector('.task-duration').value
+        }));
+
+        // Créer un événement pour chaque tâche
+        tasks.forEach(task => {
+            const newEvent = {
+                id: Date.now() + Math.random(),
+                title: task.title,
+                date: date,
+                time: task.time,
+                duration: task.duration
+            };
+            events.push(newEvent);
+        });
+    }
+
+    refreshCalendar();
+    closeModal();
+    e.target.reset();
+}
+           
+// Ajouter ces nouvelles fonctions après handleEventSubmit
+function addTask() {
+        const tasksList = document.getElementById('tasksList');
+        const taskId = Date.now();
+        const taskHtml = `
+            <div class="task-item" id="task-${taskId}">
+                <div class="form-group">
+                    <label>Titre de la tâche</label>
+                    <input type="text" class="form-control task-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Heure</label>
+                    <input type="time" class="form-control task-time" required>
+                </div>
+                <div class="form-group">
+                    <label>Durée (minutes)</label>
+                    <input type="number" class="form-control task-duration" required min="15" step="15" value="60">
+                </div>
+                <button type="button" class="btn btn-danger" onclick="removeTask(${taskId})">Supprimer</button>
+            </div>
+        `;
+        tasksList.insertAdjacentHTML('beforeend', taskHtml);
+    }
+
+    function removeTask(taskId) {
+        document.getElementById(`task-${taskId}`).remove();
+    }
+
+
+            // Fonction pour changer de vue
+            function changeView(view) {
+                currentView = view;
+                const title = document.querySelector('.header-actions h1');
+                
+                switch(view) {
+                    case 'day':
+                        title.textContent = 'Planning Journalier';
+                        showDayView();
+                        break;
+                    case 'week':
+                        title.textContent = 'Planning Hebdomadaire';
+                        showWeekView();
+                        break;
+                    case 'month':
+                        title.textContent = 'Planning Mensuel';
+                        showMonthView();
+                        break;
+                }
+            }
+
+            // Fonction pour la vue journalière
+            function showDayView() {
+                const grid = document.getElementById('calendar-grid');
+                const header = document.querySelector('.calendar-header');
+                
+                grid.style.gridTemplateColumns = '1fr';
+                header.style.gridTemplateColumns = '1fr';
+                
+                const formattedDate = currentDate.toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                header.innerHTML = `<div>${formattedDate}</div>`;
+                
+                grid.innerHTML = '';
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell current-day';
+                
+                const todayEvents = events.filter(event => {
+                    const eventDate = new Date(event.date);
+                    return eventDate.toDateString() === currentDate.toDateString();
+                });
+
+                todayEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+                todayEvents.forEach(event => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = 'event-item';
+                    eventElement.innerHTML = `
+                        ${event.title}<br>
+                        <small>${event.time} (${event.duration}min)</small>
+                    `;
+                    eventElement.onclick = () => editEvent(event.id);
+                    cell.appendChild(eventElement);
+                });
+
+                grid.appendChild(cell);
+            }
+
+            // Fonction pour la vue hebdomadaire
+            function showWeekView() {
+                const grid = document.getElementById('calendar-grid');
+                const header = document.querySelector('.calendar-header');
+                
+                grid.style.gridTemplateColumns = 'repeat(7, minmax(150px, 1fr))';
+                header.style.gridTemplateColumns = 'repeat(7, minmax(150px, 1fr))';
+                
+                header.innerHTML = `
+                    <div>Lundi</div>
+                    <div>Mardi</div>
+                    <div>Mercredi</div>
+                    <div>Jeudi</div>
+                    <div>Vendredi</div>
+                    <div>Samedi</div>
+                    <div>Dimanche</div>
+                `;
+                
+                refreshCalendar();
+            }
+
+            // Fonction pour la vue mensuelle
+            function showMonthView() {
+                const grid = document.getElementById('calendar-grid');
+                const header = document.querySelector('.calendar-header');
+                
+                grid.style.gridTemplateColumns = 'repeat(7, minmax(150px, 1fr))';
+                header.style.gridTemplateColumns = 'repeat(7, minmax(150px, 1fr))';
+                
+                const month = currentDate.toLocaleDateString('fr-FR', { month: 'long' });
+                const year = currentDate.getFullYear();
+                
+                document.querySelector('.header-actions h1').textContent = 
+                    `Planning - ${month} ${year}`;
+                
+                header.innerHTML = `
+                    <div>Lun</div>
+                    <div>Mar</div>
+                    <div>Mer</div>
+                    <div>Jeu</div>
+                    <div>Ven</div>
+                    <div>Sam</div>
+                    <div>Dim</div>
+                `;
+                
+                grid.innerHTML = '';
+                const year_month = currentDate.getFullYear();
+                const month_month = currentDate.getMonth();
+                const firstDay = new Date(year_month, month_month, 1);
+                const lastDay = new Date(year_month, month_month + 1, 0);
+                
+                // Ajout des cellules vides pour le début du mois
+                let firstDayOfWeek = firstDay.getDay() || 7;
+                for (let i = 1; i < firstDayOfWeek; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    grid.appendChild(cell);
+                }
+                
+                // Ajout des jours du mois
+                for (let i = 1; i <= lastDay.getDate(); i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    if (i === currentDate.getDate() && 
+                        month_month === currentDate.getMonth() && 
+                        year_month === currentDate.getFullYear()) {
+                        cell.classList.add('current-day');
+                    }
+                    
+                    cell.innerHTML = `<div class="date">${i}</div>`;
+                    
+                    const dayEvents = events.filter(event => {
+                        const eventDate = new Date(event.date);
+                        return eventDate.getDate() === i && 
+                               eventDate.getMonth() === month_month &&
+                               eventDate.getFullYear() === year_month;
+                    });
+
+                    dayEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+                    dayEvents.forEach(event => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'event-item';
+                        eventElement.innerHTML = `
+                            ${event.title}<br>
+                            <small>${event.time}</small>
+                        `;
+                        eventElement.onclick = () => editEvent(event.id);
+                        cell.appendChild(eventElement);
+                    });
+
+                    grid.appendChild(cell);
+                }
+            }
+
+            // Affichage du calendrier standard (vue hebdomadaire)
+            function refreshCalendar() {
+                if (currentView === 'day') {
+                    showDayView();
+                } else if (currentView === 'month') {
+                    showMonthView();
+                } else {
+                    const grid = document.getElementById('calendar-grid');
+                    grid.innerHTML = '';
+                    
+                    // Obtenir le lundi de la semaine courante
+                    const monday = new Date(currentDate);
+                    monday.setDate(monday.getDate() - (monday.getDay() || 7) + 1);
+                    
+                    for (let i = 0; i < 7; i++) {
+                        const currentDay = new Date(monday);
+                        currentDay.setDate(monday.getDate() + i);
+                        
+                        const cell = document.createElement('div');
+                        cell.className = 'calendar-cell';
+                        if (currentDay.toDateString() === new Date().toDateString()) {
+                            cell.classList.add('current-day');
+                        }
+                        
+                        const dayEvents = events.filter(event => {
+                            const eventDate = new Date(event.date);
+                            return eventDate.toDateString() === currentDay.toDateString();
+                        });
+
+                        dayEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+                        const dateDiv = document.createElement('div');
+                        dateDiv.className = 'date';
+                        dateDiv.textContent = currentDay.getDate();
+                        cell.appendChild(dateDiv);
+
+                        dayEvents.forEach(event => {
+                            const eventElement = document.createElement('div');
+                            eventElement.className = 'event-item';
+                            eventElement.innerHTML = `
+                                ${event.title}<br>
+                                <small>${event.time} (${event.duration}min)</small>
+                            `;
+                            eventElement.onclick = () => editEvent(event.id);
+                            cell.appendChild(eventElement);
+                        });
+
+                        grid.appendChild(cell);
+                    }
+                }
+            }
+
+            // Édition d'un événement
+            function editEvent(eventId) {
+                const event = events.find(e => e.id === eventId);
+                if (!event) return;
+
+                if (confirm('Voulez-vous supprimer cet événement ?')) {
+                    events = events.filter(e => e.id !== eventId);
+                    refreshCalendar();
+                }
+            }
+
+            // Gestion du changement de semaine
+            function changeWeek(weekValue) {
+                if (weekValue) {
+                    const [year, week] = weekValue.split('-W');
+                    const firstDayOfWeek = new Date(year, 0, 1 + (week - 1) * 7);
+                    currentDate = firstDayOfWeek;
+                    refreshCalendar();
+                }
+            }
+
+            // Fermeture de la modal en cliquant en dehors
+            window.onclick = function(event) {
+                if (event.target.className === 'modal') {
+                    closeModal();
+                }
+            }
+
+            // Initialisation
+            document.addEventListener('DOMContentLoaded', () => {
+                refreshCalendar();
+            });
+        </script>
+    </div>
+</body>
+</html>
