@@ -16,7 +16,7 @@
             --radius: 12px;
         }
 
-                .month-navigation {
+        .month-navigation {
             display: flex;
             gap: 0.5rem;
             align-items: center;
@@ -28,33 +28,29 @@
             line-height: 1;
         }
 
-
-
-
-
         .task-item {
-        border: 1px solid #E5E7EB;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-radius: var(--radius);
-    }
+            border: 1px solid #E5E7EB;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: var(--radius);
+        }
 
-    .btn-danger {
-        background-color: #DC2626;
-        color: white;
-        margin-top: 0.5rem;
-    }
+        .btn-danger {
+            background-color: #DC2626;
+            color: white;
+            margin-top: 0.5rem;
+        }
 
-    .btn-danger:hover {
-        background-color: #B91C1C;
-    }
+        .btn-danger:hover {
+            background-color: #B91C1C;
+        }
 
-    .modal-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: flex-end;
-        margin-top: 2rem;
-    }
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
 
         * {
             margin: 0;
@@ -276,6 +272,11 @@
             border: 2px solid var(--primary-color);
         }
 
+        /* Contrôles spécifiques aux vues */
+        #week-controls, #month-controls {
+            display: none;
+        }
+
         /* Responsive design */
         @media (max-width: 1024px) {
             .sidebar {
@@ -357,20 +358,26 @@
 
         <main class="main-content">
             <div class="header-actions">
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;"
-                <h1>Planning Mensuel</h1>
-                <div class="month-navigation">
-                    <button class="btn" onclick="previousMonth()">&lt;</button>
-                    <button class="btn" onclick="nextMonth()">&gt;</button>
+                <h1 id="current-view-title">Planning Hebdomadaire</h1>
+                
+                <div id="month-controls" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="month-navigation">
+                        <button class="btn" onclick="previousMonth()">&lt;</button>
+                        <span id="current-month-display"></span>
+                        <button class="btn" onclick="nextMonth()">&gt;</button>
+                    </div>
                 </div>
-            </div>
-               
-               
-               
-                <h1>Planning Hebdomadaire</h1>
-                <div class="action-buttons">
+                
+                <div id="week-controls" class="action-buttons">
                     <button class="btn" onclick="openCreateEventModal()">+ Nouveau Créneau</button>
-                    <input type="week" onchange="changeWeek(this.value)">
+                    <input type="week" id="week-picker" onchange="changeWeek(this.value)">
+                </div>
+                
+                <div id="day-controls" class="action-buttons" style="display: none;">
+                    <button class="btn" onclick="previousDay()">Jour précédent</button>
+                    <span id="current-day-display"></span>
+                    <button class="btn" onclick="nextDay()">Jour suivant</button>
+                    <button class="btn" onclick="openCreateEventModal()">+ Nouveau Créneau</button>
                 </div>
             </div>
 
@@ -424,22 +431,74 @@
         </div>
 
         <script>
+            // Structure de données pour stocker les événements
+            let events = [];
+            let currentView = 'week';
+            let currentDate = new Date();
+
+            // Navigation entre les mois
             function previousMonth() {
                 currentDate.setMonth(currentDate.getMonth() - 1);
+                updateDateDisplay();
                 refreshCalendar();
             }
 
             function nextMonth() {
                 currentDate.setMonth(currentDate.getMonth() + 1);
+                updateDateDisplay();
                 refreshCalendar();
             }
 
+            // Navigation entre les jours
+            function previousDay() {
+                currentDate.setDate(currentDate.getDate() - 1);
+                updateDateDisplay();
+                refreshCalendar();
+            }
 
+            function nextDay() {
+                currentDate.setDate(currentDate.getDate() + 1);
+                updateDateDisplay();
+                refreshCalendar();
+            }
 
-            // Structure de données pour stocker les événements
-            let events = [];
-            let currentView = 'week';
-            let currentDate = new Date();
+            // Mise à jour de l'affichage de la date actuelle
+            function updateDateDisplay() {
+                const monthElement = document.getElementById('current-month-display');
+                const dayElement = document.getElementById('current-day-display');
+                
+                // Format pour le mois et l'année
+                const monthYear = currentDate.toLocaleDateString('fr-FR', {
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                // Format pour le jour
+                const dayFormat = currentDate.toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                if (monthElement) monthElement.textContent = monthYear;
+                if (dayElement) dayElement.textContent = dayFormat;
+                
+                // Mise à jour du sélecteur de semaine
+                const weekPicker = document.getElementById('week-picker');
+                if (weekPicker) {
+                    const year = currentDate.getFullYear();
+                    const weekNum = getWeekNumber(currentDate);
+                    weekPicker.value = `${year}-W${weekNum.toString().padStart(2, '0')}`;
+                }
+            }
+
+            // Fonction pour obtenir le numéro de semaine d'une date
+            function getWeekNumber(date) {
+                const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+                return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            }
 
             // Toggle sidebar
             function toggleSidebar() {
@@ -450,105 +509,116 @@
             function openCreateEventModal() {
                 document.getElementById('eventModal').style.display = 'block';
                 // Définir la date du jour par défaut dans le formulaire
-                const today = new Date().toISOString().split('T')[0];
+                const today = currentDate.toISOString().split('T')[0];
                 document.getElementById('eventDate').value = today;
             }
 
             function closeModal() {
                 document.getElementById('eventModal').style.display = 'none';
+                // Réinitialiser le formulaire et la liste des tâches
+                document.getElementById('eventForm').reset();
+                document.getElementById('tasksList').innerHTML = '';
             }
 
             // Gestion des événements
-            // Ajouter cette modification dans la fonction handleEventSubmit
+            function handleEventSubmit(e) {
+                e.preventDefault();
+                const date = document.getElementById('eventDate').value;
+                
+                if (document.getElementsByClassName('task-item').length === 0) {
+                    // Si aucune tâche n'est ajoutée, créer un événement simple
+                    const newEvent = {
+                        id: Date.now(),
+                        title: document.getElementById('eventTitle').value,
+                        date: document.getElementById('eventDate').value,
+                        time: document.getElementById('eventTime').value,
+                        duration: document.getElementById('eventDuration').value
+                    };
+                    events.push(newEvent);
+                } else {
+                    // Sinon, collecter toutes les tâches
+                    const tasks = Array.from(document.getElementsByClassName('task-item')).map(task => ({
+                        title: task.querySelector('.task-title').value,
+                        time: task.querySelector('.task-time').value,
+                        duration: task.querySelector('.task-duration').value
+                    }));
 
-function handleEventSubmit(e) {
-    e.preventDefault();
-    const date = document.getElementById('eventDate').value;
-    
-    if (document.getElementsByClassName('task-item').length === 0) {
-        // Si aucune tâche n'est ajoutée, créer un événement simple
-        const newEvent = {
-            id: Date.now(),
-            title: document.getElementById('eventTitle').value,
-            date: document.getElementById('eventDate').value,
-            time: document.getElementById('eventTime').value,
-            duration: document.getElementById('eventDuration').value
-        };
-        events.push(newEvent);
-    } else {
-        // Sinon, collecter toutes les tâches
-        const tasks = Array.from(document.getElementsByClassName('task-item')).map(task => ({
-            title: task.querySelector('.task-title').value,
-            time: task.querySelector('.task-time').value,
-            duration: task.querySelector('.task-duration').value
-        }));
+                    // Créer un événement pour chaque tâche
+                    tasks.forEach(task => {
+                        const newEvent = {
+                            id: Date.now() + Math.random(),
+                            title: task.title,
+                            date: date,
+                            time: task.time,
+                            duration: task.duration
+                        };
+                        events.push(newEvent);
+                    });
+                }
 
-        // Créer un événement pour chaque tâche
-        tasks.forEach(task => {
-            const newEvent = {
-                id: Date.now() + Math.random(),
-                title: task.title,
-                date: date,
-                time: task.time,
-                duration: task.duration
-            };
-            events.push(newEvent);
-        });
-    }
-
-    refreshCalendar();
-    closeModal();
-    e.target.reset();
-}
+                refreshCalendar();
+                closeModal();
+                e.target.reset();
+            }
            
-// Ajouter ces nouvelles fonctions après handleEventSubmit
-function addTask() {
-        const tasksList = document.getElementById('tasksList');
-        const taskId = Date.now();
-        const taskHtml = `
-            <div class="task-item" id="task-${taskId}">
-                <div class="form-group">
-                    <label>Titre de la tâche</label>
-                    <input type="text" class="form-control task-title" required>
-                </div>
-                <div class="form-group">
-                    <label>Heure</label>
-                    <input type="time" class="form-control task-time" required>
-                </div>
-                <div class="form-group">
-                    <label>Durée (minutes)</label>
-                    <input type="number" class="form-control task-duration" required min="15" step="15" value="60">
-                </div>
-                <button type="button" class="btn btn-danger" onclick="removeTask(${taskId})">Supprimer</button>
-            </div>
-        `;
-        tasksList.insertAdjacentHTML('beforeend', taskHtml);
-    }
+            // Ajouter une tâche
+            function addTask() {
+                const tasksList = document.getElementById('tasksList');
+                const taskId = Date.now();
+                const taskHtml = `
+                    <div class="task-item" id="task-${taskId}">
+                        <div class="form-group">
+                            <label>Titre de la tâche</label>
+                            <input type="text" class="form-control task-title" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Heure</label>
+                            <input type="time" class="form-control task-time" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Durée (minutes)</label>
+                            <input type="number" class="form-control task-duration" required min="15" step="15" value="60">
+                        </div>
+                        <button type="button" class="btn btn-danger" onclick="removeTask(${taskId})">Supprimer</button>
+                    </div>
+                `;
+                tasksList.insertAdjacentHTML('beforeend', taskHtml);
+            }
 
-    function removeTask(taskId) {
-        document.getElementById(`task-${taskId}`).remove();
-    }
-
+            // Supprimer une tâche
+            function removeTask(taskId) {
+                document.getElementById(`task-${taskId}`).remove();
+            }
 
             // Fonction pour changer de vue
             function changeView(view) {
                 currentView = view;
-                const title = document.querySelector('.header-actions h1');
+                const title = document.getElementById('current-view-title');
+                
+                // Masquer tous les contrôles
+                document.getElementById('day-controls').style.display = 'none';
+                document.getElementById('week-controls').style.display = 'none';
+                document.getElementById('month-controls').style.display = 'none';
                 
                 switch(view) {
                     case 'day':
                         title.textContent = 'Planning Journalier';
+                        document.getElementById('day-controls').style.display = 'flex';
                         showDayView();
                         break;
                     case 'week':
                         title.textContent = 'Planning Hebdomadaire';
+                        document.getElementById('week-controls').style.display = 'flex';
                         showWeekView();
                         break;
                     case 'month':
                         title.textContent = 'Planning Mensuel';
+                        document.getElementById('month-controls').style.display = 'flex';
                         showMonthView();
                         break;
                 }
+                
+                updateDateDisplay();
             }
 
             // Fonction pour la vue journalière
@@ -570,7 +640,13 @@ function addTask() {
                 
                 grid.innerHTML = '';
                 const cell = document.createElement('div');
-                cell.className = 'calendar-cell current-day';
+                cell.className = 'calendar-cell';
+                
+                // Vérifier si c'est le jour actuel
+                const today = new Date();
+                if (currentDate.toDateString() === today.toDateString()) {
+                    cell.classList.add('current-day');
+                }
                 
                 const todayEvents = events.filter(event => {
                     const eventDate = new Date(event.date);
@@ -611,7 +687,50 @@ function addTask() {
                     <div>Dimanche</div>
                 `;
                 
-                refreshCalendar();
+                grid.innerHTML = '';
+                
+                // Obtenir le lundi de la semaine courante
+                const monday = new Date(currentDate);
+                monday.setDate(monday.getDate() - (monday.getDay() || 7) + 1);
+                
+                for (let i = 0; i < 7; i++) {
+                    const currentDay = new Date(monday);
+                    currentDay.setDate(monday.getDate() + i);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    
+                    // Vérifier si c'est le jour actuel
+                    const today = new Date();
+                    if (currentDay.toDateString() === today.toDateString()) {
+                        cell.classList.add('current-day');
+                    }
+                    
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'date';
+                    dateDiv.textContent = currentDay.getDate();
+                    cell.appendChild(dateDiv);
+                    
+                    const dayEvents = events.filter(event => {
+                        const eventDate = new Date(event.date);
+                        return eventDate.toDateString() === currentDay.toDateString();
+                    });
+
+                    dayEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+                    dayEvents.forEach(event => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'event-item';
+                        eventElement.innerHTML = `
+                            ${event.title}<br>
+                            <small>${event.time} (${event.duration}min)</small>
+                        `;
+                        eventElement.onclick = () => editEvent(event.id);
+                        cell.appendChild(eventElement);
+                    });
+
+                    grid.appendChild(cell);
+                }
             }
 
             // Fonction pour la vue mensuelle
@@ -621,12 +740,6 @@ function addTask() {
                 
                 grid.style.gridTemplateColumns = 'repeat(7, minmax(150px, 1fr))';
                 header.style.gridTemplateColumns = 'repeat(7, minmax(150px, 1fr))';
-                
-                const month = currentDate.toLocaleDateString('fr-FR', { month: 'long' });
-                const year = currentDate.getFullYear();
-                
-                document.querySelector('.header-actions h1').textContent = 
-                    `Planning - ${month} ${year}`;
                 
                 header.innerHTML = `
                     <div>Lun</div>
@@ -656,9 +769,12 @@ function addTask() {
                 for (let i = 1; i <= lastDay.getDate(); i++) {
                     const cell = document.createElement('div');
                     cell.className = 'calendar-cell';
-                    if (i === currentDate.getDate() && 
-                        month_month === currentDate.getMonth() && 
-                        year_month === currentDate.getFullYear()) {
+                    
+                    // Vérifier si c'est le jour actuel
+                    const today = new Date();
+                    if (i === today.getDate() && 
+                        month_month === today.getMonth() && 
+                        year_month === today.getFullYear()) {
                         cell.classList.add('current-day');
                     }
                     
@@ -688,55 +804,14 @@ function addTask() {
                 }
             }
 
-            // Affichage du calendrier standard (vue hebdomadaire)
+            // Affichage du calendrier
             function refreshCalendar() {
                 if (currentView === 'day') {
                     showDayView();
                 } else if (currentView === 'month') {
                     showMonthView();
                 } else {
-                    const grid = document.getElementById('calendar-grid');
-                    grid.innerHTML = '';
-                    
-                    // Obtenir le lundi de la semaine courante
-                    const monday = new Date(currentDate);
-                    monday.setDate(monday.getDate() - (monday.getDay() || 7) + 1);
-                    
-                    for (let i = 0; i < 7; i++) {
-                        const currentDay = new Date(monday);
-                        currentDay.setDate(monday.getDate() + i);
-                        
-                        const cell = document.createElement('div');
-                        cell.className = 'calendar-cell';
-                        if (currentDay.toDateString() === new Date().toDateString()) {
-                            cell.classList.add('current-day');
-                        }
-                        
-                        const dayEvents = events.filter(event => {
-                            const eventDate = new Date(event.date);
-                            return eventDate.toDateString() === currentDay.toDateString();
-                        });
-
-                        dayEvents.sort((a, b) => a.time.localeCompare(b.time));
-
-                        const dateDiv = document.createElement('div');
-                        dateDiv.className = 'date';
-                        dateDiv.textContent = currentDay.getDate();
-                        cell.appendChild(dateDiv);
-
-                        dayEvents.forEach(event => {
-                            const eventElement = document.createElement('div');
-                            eventElement.className = 'event-item';
-                            eventElement.innerHTML = `
-                                ${event.title}<br>
-                                <small>${event.time} (${event.duration}min)</small>
-                            `;
-                            eventElement.onclick = () => editEvent(event.id);
-                            cell.appendChild(eventElement);
-                        });
-
-                        grid.appendChild(cell);
-                    }
+                    showWeekView();
                 }
             }
 
@@ -755,8 +830,16 @@ function addTask() {
             function changeWeek(weekValue) {
                 if (weekValue) {
                     const [year, week] = weekValue.split('-W');
-                    const firstDayOfWeek = new Date(year, 0, 1 + (week - 1) * 7);
-                    currentDate = firstDayOfWeek;
+                    const janFirst = new Date(year, 0, 1);
+                    const days = 1 + (week - 1) * 7;
+                    const targetDate = new Date(year, 0, days);
+                    
+                    // Ajuster pour obtenir le lundi de cette semaine
+                    const dayOfWeek = targetDate.getDay() || 7;
+                    targetDate.setDate(targetDate.getDate() - dayOfWeek + 1);
+                    
+                    currentDate = targetDate;
+                    updateDateDisplay();
                     refreshCalendar();
                 }
             }
@@ -770,6 +853,8 @@ function addTask() {
 
             // Initialisation
             document.addEventListener('DOMContentLoaded', () => {
+                changeView('week'); // Définir la vue initiale
+                updateDateDisplay();
                 refreshCalendar();
             });
         </script>
